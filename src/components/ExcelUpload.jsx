@@ -84,7 +84,22 @@ function ExcelUpload() {
     ]);
   };
 
-  console.log("dsfadsafasd", dropDataTitle);
+  const chartDrop = (ev) => {
+    ev.preventDefault();
+    let d = ev.dataTransfer.getData("colIdx");
+    let newArr = dropDataTitle || [];
+    for (let i = 0; i < data.length; i++) {
+      if (dropDataTitle.length === data.length) {
+        newArr[i][colDefs[d]] = data[i][colDefs[d]]
+      } else {
+        newArr.push({
+          [colDefs[d]]: data[i][colDefs[d]]
+        })
+      }
+    }
+    setdropDataTitle(newArr);
+  };
+
   // useEffect(() => {
   //   if (dropDataTitle) {
   //     const filterDropDataTitle = data.map((row) =>
@@ -125,9 +140,9 @@ function ExcelUpload() {
             </tr>
           </table>
         )}
-        <div className="third">
-          <h1>chart</h1>
-        </div>
+      </div>
+      <div className="third" onDrop={chartDrop} onDragOver={allowDrop}>
+        <h1>chart</h1>
       </div>
     </div>
   );
