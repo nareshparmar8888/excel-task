@@ -1,28 +1,15 @@
 /* eslint-disable no-unused-expressions */
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useState } from "react";
 import * as XLSX from "xlsx";
 import xls from "../assets/xls.png";
-import Table from "./Table";
+import Sidemenu from "./Sidemenu";
 
 function ExcelUpload() {
-  const [isFileUploaded, setisFileUploaded] = useState(false);
+  const [isFileUploaded, setIsFileUploaded] = useState(false);
   const [colDefs, setColDefs] = useState();
   const [data, setData] = useState();
-  const [dropDataTitle, setdropDataTitle] = useState([]);
-  const [dropData, setDropData] = useState();
-
-  // const convertToJson = (headers, data) => {
-  //   const rows = [];
-  //   data.forEach((row, i) => {
-  //     let rowData = {};
-  //     row.forEach((element, index) => {
-  //       rowData[headers[index]] = element;
-  //     });
-  //     rows.push(rowData);
-  //   });
-  //   setisFileUploaded(true);
-  //   return rows;
-  // };
+  const [horizontalDropTitle, sethorizontalDropTitle] = useState([]);
+  const [verticalDropTitle, setverticalDropTitle] = useState([]);
 
   const importExcel = (e) => {
     const file = e.target.files[0];
@@ -30,7 +17,6 @@ function ExcelUpload() {
     const reader = new FileReader();
     reader.onload = (event) => {
       //parse data
-
       const bufferArray = event.target.result;
       const workBook = XLSX.read(bufferArray, { type: "buffer" });
 
@@ -39,29 +25,19 @@ function ExcelUpload() {
       const workSheet = workBook.Sheets[workSheetName];
       //convert to array
       const fileData = XLSX.utils.sheet_to_json(workSheet);
-      console.log(" File Data => ", fileData);
       setData(fileData);
       setColDefs(Object.keys(fileData[0]));
-      // const headers = fileData[0];
-      // const heads = headers.map((head, index) => ({
-      //   field: head,
-      // }));
-      // setColDefs(heads);
-
-      //removing header
-      // fileData.splice(0, 1);
-
-      // setData(convertToJson(headers, fileData));
     };
 
     if (file) {
       const fileNameArr = file.name.split(".");
 
       const extension = fileNameArr[fileNameArr.length - 1];
-      if (extension == "xlsx" || extension == "xls") {
+      if (extension === "xlsx" || extension === "xls") {
+        setIsFileUploaded(true);
         reader.readAsArrayBuffer(file);
       } else {
-        setisFileUploaded(false);
+        setIsFileUploaded(false);
         alert("Invalid file input, Select Excel, CSV file");
       }
     } else {
@@ -74,77 +50,98 @@ function ExcelUpload() {
     ev.preventDefault();
   };
 
-  const drop = (ev) => {
+  const horizontalDrop = (ev) => {
     ev.preventDefault();
     var data = ev.dataTransfer.getData("colIdx");
-    console.log("data => ", data);
-    setdropDataTitle([
-      ...dropDataTitle,
-      document.getElementById(colDefs[data]).textContent,
-    ]);
-  };
+    let heading = document.getElementById(colDefs[data]).textContent;
 
-  const chartDrop = (ev) => {
-    ev.preventDefault();
-    let d = ev.dataTransfer.getData("colIdx");
-    let newArr = dropDataTitle || [];
-    for (let i = 0; i < data.length; i++) {
-      if (dropDataTitle.length === data.length) {
-        newArr[i][colDefs[d]] = data[i][colDefs[d]]
-      } else {
-        newArr.push({
-          [colDefs[d]]: data[i][colDefs[d]]
-        })
-      }
+    if (!horizontalDropTitle.includes(heading)) {
+      sethorizontalDropTitle([...horizontalDropTitle, heading]);
     }
-    setdropDataTitle(newArr);
   };
+  const VeticalDrop = (ev) => {
+    ev.preventDefault();
+    var data = ev.dataTransfer.getData("colIdx");
+    let heading = document.getElementById(colDefs[data]).textContent;
 
-  // useEffect(() => {
-  //   if (dropDataTitle) {
-  //     const filterDropDataTitle = data.map((row) =>
-  //       Object.entries(row).filter(([k, v], index) => k === dropDataTitle)
-  //     );
-  //     setDropData(filterDropDataTitle);
-  //   }
-  // }, [data, dropDataTitle]);
+    if (!verticalDropTitle.includes(heading)) {
+      setverticalDropTitle([...verticalDropTitle, heading]);
+    }
+  };
 
   return (
-    <div className="main">
-      <div>
-        <div>
-          {isFileUploaded && (
-            <img src={xls} alt="Excel File" height={50} width={50} />
-          )}
+    <>
+      <div className="menu">{data && <Sidemenu colDefs={colDefs} />}</div>
+      <div className="section">
+        <div className="upload ">
+          <div className="drop_box">
+            {isFileUploaded && (
+              <img src={xls} alt="Excel File" height={50} width={50} />
+            )}
+            <input type="file" onChange={(e) => importExcel(e)} />
+          </div>
         </div>
-        <input type="file" onChange={(e) => importExcel(e)} />
-        <div>{data && <Table colDefs={colDefs} data={data} />}</div>
-      </div>
 
-      <div className="second" onDrop={drop} onDragOver={allowDrop}>
-        drop
-        {dropDataTitle && data && (
-          <table>
-            <tr>
-              {dropDataTitle.map((col) => (
-                <th>{col}</th>
-              ))}
+        {data && (
+          <div className="main">
+            <div
+              className="second"
+              onDrop={horizontalDrop}
+              onDragOver={allowDrop}
+            >
+              Horizontal Table
+              <table>
+                <tr>
+                  {horizontalDropTitle &&
+                    horizontalDropTitle.length > 0 &&
+                    horizontalDropTitle.map((col) => <th>{col}</th>)}
+                </tr>
 
-              {data.map((row) => (
-                <>
-                  {Object.entries(row).map(([k, v], idx) => {
-                    return <td key={v}>{row[dropDataTitle[idx]]}</td>;
-                  })}
-                </>
-              ))}
-            </tr>
-          </table>
+                {data &&
+                  data.length > 0 &&
+                  data.map((row) => (
+                    <tr>
+                      {Object.entries(row).map(([k, v], idx) => {
+                        return row[horizontalDropTitle[idx]] ? (
+                          <td key={v}>{row[horizontalDropTitle[idx]]}</td>
+                        ) : null;
+                      })}
+                    </tr>
+                  ))}
+              </table>
+            </div>
+            <div onDrop={VeticalDrop} onDragOver={allowDrop}>
+              vertical Table
+              <div className="third">
+                <table>
+                  {verticalDropTitle &&
+                    verticalDropTitle.length > 0 &&
+                    verticalDropTitle.map((col) => (
+                      <tr>
+                        <th>{col}</th>
+                        {data &&
+                          data.length > 0 &&
+                          data.map((row) => {
+                            return Object.entries(row).map(([k, v], idx) => {
+                              debugger;
+                              return row[verticalDropTitle[idx]] &&
+                                col === k ? (
+                                <td key={v}>{row[verticalDropTitle[idx]]}</td>
+                              ) : null;
+                            });
+                          })}
+                      </tr>
+                    ))}
+                </table>
+              </div>
+              <div>
+                <h1>chart</h1>
+              </div>
+            </div>
+          </div>
         )}
       </div>
-      <div className="third" onDrop={chartDrop} onDragOver={allowDrop}>
-        <h1>chart</h1>
-      </div>
-    </div>
+    </>
   );
 }
 
